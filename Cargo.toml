@@ -1,0 +1,19 @@
+[package]
+name = "tetanus"
+version = "0.1.0"
+description = "Blockchain interaction library (specifically hive) with wasm bindings for javascript"
+edition = "2021"
+include = ["Cargo.toml", "src/**/*.rs"]
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+bs58 = "0.4.0"
+wasm-bindgen = "0.2.74"
+getrandom = { version = "0.2", features = ["js"] }
+
+[dependencies.k256]
+version = "0.11.2"
+features=["sha256", "ecdsa", "digest"]
