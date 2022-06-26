@@ -3,6 +3,7 @@ name = "tetanus"
 version = "0.1.0"
 description = "Blockchain interaction library (specifically hive) with wasm bindings for javascript"
 edition = "2021"
+repository = "https://github.com/sicarius97/tetanus"
 include = ["Cargo.toml", "src/**/*.rs"]
 license = "MIT"
 
