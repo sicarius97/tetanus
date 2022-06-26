@@ -3,13 +3,13 @@ use k256::{
     sha2::{Sha256}
 };
 use wasm_bindgen::prelude::*;
-
+use crate::signatures::sig_to_string;
 
 
 #[derive(Debug, Clone, PartialEq)]
 #[wasm_bindgen]
 pub struct PrivateKey{ key: Vec<u8> }
-
+#[wasm_bindgen]
 impl PrivateKey {
     /// Creates a new private key instance
     pub fn new(key: Vec<u8>) -> PrivateKey {
@@ -64,12 +64,14 @@ impl PrivateKey {
     /// let sig_string = sig_to_string(sig);
     /// assert_eq!("SIG_K1_KBGSFJZW39Q3Y7Gn1bW2yjDycWYKXpfFgoGEzzrT8dFuQiwuvj3jcXxThrxuZJg7AdsZVSKro7eFZz4N6f9i6Uzb6d5rza", sig_string)
     /// ```
-    pub fn sign_message(&self, message: &str) -> RecoverableSignature {
+    pub fn sign_message(&self, message: &str) -> String {
         let private_key = SigningKey::from_bytes(&self.key.as_slice()).unwrap();
         let signature: Signature = private_key.sign(message.as_bytes());
 
         let rec_signature = RecoverableSignature::new(&signature, k256::ecdsa::recoverable::Id::new(u8::from(0)).unwrap()).unwrap();
 
-        rec_signature
+        let message_sig_string = sig_to_string(rec_signature);
+
+        message_sig_string
     }
 }

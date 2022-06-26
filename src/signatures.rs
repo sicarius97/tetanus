@@ -1,7 +1,6 @@
 use::ripemd::{Ripemd160, Digest};
 use::k256::ecdsa::recoverable::Signature;
 
-
 pub fn sig_to_string(sig: Signature) -> String {
     let check_bytes = b"K1";
     let sig_buffer = [&[u8::from(31)], sig.r().to_bytes().as_slice(), sig.s().to_bytes().as_slice()].concat();
