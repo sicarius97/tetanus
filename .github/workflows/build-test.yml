@@ -31,5 +31,5 @@ jobs:
     - name: Web Build
       run: wasm-pack build
     - name: Web Test
-      run: wasm-pack test
+      run: wasm-pack test --node
     
