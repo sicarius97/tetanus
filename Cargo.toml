@@ -6,6 +6,7 @@ edition = "2021"
 repository = "https://github.com/sicarius97/tetanus"
 include = ["Cargo.toml", "src/**/*.rs"]
 license = "MIT"
+authors = ["sicarius97 <sicarius97@protonmail.com>)", "others"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
