@@ -1,9 +1,9 @@
 use k256::{
-    ecdsa::{recoverable::Signature as RecoverableSignature, SigningKey, signature::Signer, signature::digest::Digest, Signature},
+    ecdsa::{recoverable::Signature as RecoverableSignature, SigningKey, signature::Signer, signature::digest::Digest},
     sha2::{Sha256}
 };
 use wasm_bindgen::prelude::*;
-use crate::signatures::sig_to_string;
+use crate::signatures::Signature;
 
 
 #[derive(Debug, Clone, PartialEq)]
@@ -57,20 +57,15 @@ impl PrivateKey {
     /// Takes in a PrivateKey instance and message then returns a signed message
     /// ```
     /// use tetanus::keys::PrivateKey;
-    /// use tetanus::signatures::sig_to_string;
-    /// let message = "test";
+    /// let message = "helloworld";
     /// let private = PrivateKey::from_login("test", "test", "owner");
     /// let sig = private.sign_message(message);
-    /// assert_eq!("SIG_K1_KBGSFJZW39Q3Y7Gn1bW2yjDycWYKXpfFgoGEzzrT8dFuQiwuvj3jcXxThrxuZJg7AdsZVSKro7eFZz4N6f9i6Uzb6d5rza", sig)
+    /// assert_eq!("28Xrw5WR4Cz1by9kfvjxLCwFvGNatnx99WJmD2wi3zx8QqayWzXZYJQrW3zJzU8f1eJSzWSYDoZHh75txvSmBUQiRN8z3G5", sig.to_string())
     /// ```
-    pub fn sign_message(&self, message: &str) -> String {
+    pub fn sign_message(&self, message: &str) -> Signature {
         let private_key = SigningKey::from_bytes(&self.key.as_slice()).unwrap();
-        let signature: Signature = private_key.sign(message.as_bytes());
+        let signature: RecoverableSignature = private_key.sign(message.as_bytes());
 
-        let rec_signature = RecoverableSignature::new(&signature, k256::ecdsa::recoverable::Id::new(u8::from(0)).unwrap()).unwrap();
-
-        let message_sig_string = sig_to_string(rec_signature);
-
-        message_sig_string
+        Signature::new(signature.as_ref().to_vec())
     }
 }
