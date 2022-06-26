@@ -1,5 +1,10 @@
-use k256::sha2::{Sha256, Digest};
+use k256::{
+    ecdsa::{recoverable::Signature as RecoverableSignature, SigningKey, signature::Signer, signature::digest::Digest, Signature},
+    sha2::{Sha256}
+};
 use wasm_bindgen::prelude::*;
+
+
 
 #[derive(Debug, Clone, PartialEq)]
 #[wasm_bindgen]
@@ -21,7 +26,8 @@ impl PrivateKey {
     /// ```
     pub fn from_login(username: &str, password: &str, role: &str ) -> PrivateKey {
         let seed = username.to_owned() + &role + &password;
-        let hash = Sha256::digest(seed);
+        let hash = Sha256::digest(seed.as_bytes());
+        assert!(hash.len() == 32);
         PrivateKey{ key: hash.to_vec() }
     }
 
@@ -40,12 +46,30 @@ impl PrivateKey {
         let network_id: &[u8] = &[0x80];
         let key_vec = [network_id, &self.key].concat();
 
-        let checksum = Sha256::digest(Sha256::digest(&key_vec));
+        let checksum = Sha256::digest(Sha256::digest(&key_vec).as_slice());
 
         let with_checksum = [key_vec, checksum[0..4].to_vec()].concat();
 
         let wif_string = bs58::encode(with_checksum).into_string();
 
         wif_string
+    }
+    /// Takes in a PrivateKey instance and message then returns a signed message
+    /// ```
+    /// use tetanus::keys::PrivateKey;
+    /// use tetanus::signatures::sig_to_string;
+    /// let message = "test";
+    /// let private = PrivateKey::from_login("test", "test", "owner");
+    /// let sig = private.sign_message(message);
+    /// let sig_string = sig_to_string(sig);
+    /// assert_eq!("SIG_K1_KBGSFJZW39Q3Y7Gn1bW2yjDycWYKXpfFgoGEzzrT8dFuQiwuvj3jcXxThrxuZJg7AdsZVSKro7eFZz4N6f9i6Uzb6d5rza", sig_string)
+    /// ```
+    pub fn sign_message(&self, message: &str) -> RecoverableSignature {
+        let private_key = SigningKey::from_bytes(&self.key.as_slice()).unwrap();
+        let signature: Signature = private_key.sign(message.as_bytes());
+
+        let rec_signature = RecoverableSignature::new(&signature, k256::ecdsa::recoverable::Id::new(u8::from(0)).unwrap()).unwrap();
+
+        rec_signature
     }
 }
