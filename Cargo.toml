@@ -17,3 +17,6 @@ wasm-bindgen = { version = "0.2.74" }
 ripemd = "0.1.1"
 k256 = { version = "0.11.2", default-features = false, features = ["keccak256", "ecdsa"] }
 getrandom = { version = "0.2", features = ["js"] }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.17"
