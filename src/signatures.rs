@@ -1,64 +1,41 @@
-use k256::ecdsa::signature::Signature as OtherSignature;
-use::ripemd::{Ripemd160, Digest};
-use::k256::ecdsa::recoverable::Signature as RecoverableSignature;
 use wasm_bindgen::prelude::*;
+use crate::{utils::{encode_to_string, decode_from_string}, keys::public::PublicKey};
+use k256::ecdsa::recoverable::Signature as RecoverableSignature;
+use k256::ecdsa::signature::Signature as OtherSignature;
 
-fn decode_from_string(sig: String) -> RecoverableSignature {
-    let decoded_buffer = bs58::decode(sig).into_vec().unwrap();
-
-    let sig_buffer = &decoded_buffer[0..&decoded_buffer.len() - 4];
-    let checksum = &decoded_buffer[&decoded_buffer.len() - 4..];
-    assert!(sig_buffer.len() == 65);
-    assert!(checksum.len() == 4);
-
-    let signature = RecoverableSignature::from_bytes(sig_buffer).unwrap();
-
-    signature
-    
-}
-
-fn encode_to_string(sig: RecoverableSignature) -> String {
-    let check_bytes = b"K1";
-    let sig_buffer = sig.as_ref();
-    assert!(sig_buffer.len() == 65);
-
-    let check = [sig_buffer, check_bytes].concat();
-
-    let mut hasher = Ripemd160::new();
-
-    hasher.update(check);
-
-    let result = hasher.finalize();
-
-    let checksum = &result[0..4];
-
-    let encoded_string = bs58::encode([sig_buffer, checksum].concat()).into_string();
-
-    return encoded_string
-}
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 #[wasm_bindgen]
 pub struct Signature{ sig: Vec<u8> }
 
 #[wasm_bindgen]
 impl Signature {
+    /// Creates a new signature instance
     pub fn new(sig: Vec<u8>) -> Signature {
         Signature { sig }
     }
 
+    /// Allows for a base58 string to be decoded into its original buffer
+    /// ```
+    /// use tetanus::keys::private::PrivateKey;
+    /// use tetanus::signatures::Signature;
+    /// // Previously encoded string
+    /// let sig_string = "28Xrw5WR4Cz1by9kfvjxLCwFvGNatnx99WJmD2wi3zx8QqayWzXZYJQrW3zJzU8f1eJSzWSYDoZHh75txvSmBUQiRN8z3G5".to_string();
+    ///
+    /// let message = "helloworld";
+    /// let private = PrivateKey::from_login("test", "test", "owner");
+    /// let sig2 = private.sign_message(message);
+    /// assert_eq!(sig_string, sig2.to_string())
+    /// ```
     pub fn to_string(&self) -> String {
-        let signature = RecoverableSignature::from_bytes(&self.sig).unwrap();
-        let sig_string = encode_to_string(signature);
-
-        println!("{:?}", &self.sig);
+        // let signature = RecoverableSignature::from_bytes(&self.sig).unwrap();
+        let sig_string = encode_to_string(&self.sig, None);
 
         sig_string
     }
 
     /// Allows for a base58 string to be decoded into its original buffer
     /// ```
-    /// use tetanus::keys::PrivateKey;
+    /// use tetanus::keys::private::PrivateKey;
     /// use tetanus::signatures::Signature;
     /// // Previously encoded string
     /// let sig_string = "28Xrw5WR4Cz1by9kfvjxLCwFvGNatnx99WJmD2wi3zx8QqayWzXZYJQrW3zJzU8f1eJSzWSYDoZHh75txvSmBUQiRN8z3G5".to_string();
@@ -70,12 +47,25 @@ impl Signature {
     /// assert_eq!(sig, sig2)
     /// ```
     pub fn from_string(sig: String) -> Signature {
-        let signature = decode_from_string(sig);
+        let signature = decode_from_string(sig, None);
 
-        let signature2 = Signature { sig: signature.as_ref().to_vec() };
+        Signature { sig: signature }
+    }
 
-        println!("{:?}", signature2);
+    /// Allows a public key wif to be obtained from a base58 encoded signature string and its original message
+    ///```
+    /// use tetanus::signatures::Signature;
+    /// let sig_string = "28Xrw5WR4Cz1by9kfvjxLCwFvGNatnx99WJmD2wi3zx8QqayWzXZYJQrW3zJzU8f1eJSzWSYDoZHh75txvSmBUQiRN8z3G5".to_string();
+    /// let message = "helloworld";
+    /// let public_key = Signature::recover_from_string(sig_string, message.to_string());
+    /// assert_eq!("STM5jixkNBqJXNtX9vy2GjaqpX2d5jXrcjRXgh1WU5fXZhnDJrLM8", public_key)
+    pub fn recover_from_string(sig_string: String, msg: String) -> String {
+        let sig = decode_from_string(sig_string, None);
 
-        signature2
+        let signature = RecoverableSignature::from_bytes(&sig).unwrap();
+
+        let public_key = signature.recover_verifying_key(msg.as_bytes()).unwrap();
+
+        PublicKey::new(public_key.to_bytes().to_vec()).to_string()
     }
 }

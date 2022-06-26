@@ -4,6 +4,9 @@ use k256::{
 };
 use wasm_bindgen::prelude::*;
 use crate::signatures::Signature;
+use crate::utils::{EncodeType, encode_to_string};
+
+use crate::keys::public::PublicKey;
 
 
 #[derive(Debug, Clone, PartialEq)]
@@ -19,7 +22,7 @@ impl PrivateKey {
     /// Returns a new private key instance by creating a seed with
     /// passed in arguments
     /// ```
-    /// use tetanus::keys::PrivateKey;
+    /// use tetanus::keys::private::PrivateKey;
     /// let assert_key: PrivateKey = PrivateKey::new(vec![172, 77, 224, 92, 161, 163, 181, 53, 80, 219, 255, 168, 223, 31, 231, 32, 238, 108, 150, 219, 77, 153, 8, 68, 240, 148, 105, 203, 131, 235, 219, 82]);
     /// let key = PrivateKey::from_login("test", "test", "owner");
     /// assert_eq!(assert_key, key)
@@ -36,27 +39,35 @@ impl PrivateKey {
     /// 
     /// Assuming a username and password of test and a role of owner
     /// ```
-    /// use tetanus::keys::PrivateKey;
+    /// use tetanus::keys::private::PrivateKey;
     /// let test_wif = "5K8AruCpTY6gVeQRMd5UpeuoVR2YheRCjUDAVFrfiahZU4bBccj";
     /// let generated_wif = PrivateKey::from_login("test", "test", "owner").to_string();
     /// assert_eq!(test_wif, generated_wif)
     /// ```
     pub fn to_string(&self) -> String {
         assert!(&self.key.len() > &0);
-        let network_id: &[u8] = &[0x80];
-        let key_vec = [network_id, &self.key].concat();
 
-        let checksum = Sha256::digest(Sha256::digest(&key_vec).as_slice());
-
-        let with_checksum = [key_vec, checksum[0..4].to_vec()].concat();
-
-        let wif_string = bs58::encode(with_checksum).into_string();
-
-        wif_string
+        encode_to_string(&self.key, Some(EncodeType::Sha256x2))
     }
+
+    /// Returns a public key instance that corresponds to the private key
+    /// ```
+    /// use tetanus::keys::private::PrivateKey;
+    /// let private = PrivateKey::from_login("test", "test", "owner");
+    /// let public = private.to_public();
+    /// assert_eq!("STM5jixkNBqJXNtX9vy2GjaqpX2d5jXrcjRXgh1WU5fXZhnDJrLM8", public.to_string())
+    /// ```
+    pub fn to_public(&self) -> PublicKey {
+        let private_key = SigningKey::from_bytes(&self.key.as_slice()).unwrap();
+
+        let pub_key = private_key.verifying_key();
+
+        PublicKey::new(pub_key.to_bytes().to_vec())
+    }
+
     /// Takes in a PrivateKey instance and message then returns a signed message
     /// ```
-    /// use tetanus::keys::PrivateKey;
+    /// use tetanus::keys::private::PrivateKey;
     /// let message = "helloworld";
     /// let private = PrivateKey::from_login("test", "test", "owner");
     /// let sig = private.sign_message(message);
@@ -69,3 +80,5 @@ impl PrivateKey {
         Signature::new(signature.as_ref().to_vec())
     }
 }
+
+
