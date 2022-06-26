@@ -1,6 +1,6 @@
 [package]
 name = "tetanus"
-version = "0.1.1"
+version = "0.1.2"
 description = "Blockchain interaction library (specifically hive) with wasm bindings for javascript"
 edition = "2021"
 repository = "https://github.com/sicarius97/tetanus"
@@ -12,7 +12,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 bs58 = "0.4.0"
-wasm-bindgen = { version = "0.2.74", features = ["serde-serialize"] }
+wasm-bindgen = { version = "0.2.74" }
 ripemd = "0.1.1"
 elliptic-curve = { version = "0.10.6", default-features = false }
 k256 = { version = "0.11.2", default-features = false, features = ["keccak256", "ecdsa"] }

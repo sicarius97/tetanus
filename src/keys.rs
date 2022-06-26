@@ -61,8 +61,7 @@ impl PrivateKey {
     /// let message = "test";
     /// let private = PrivateKey::from_login("test", "test", "owner");
     /// let sig = private.sign_message(message);
-    /// let sig_string = sig_to_string(sig);
-    /// assert_eq!("SIG_K1_KBGSFJZW39Q3Y7Gn1bW2yjDycWYKXpfFgoGEzzrT8dFuQiwuvj3jcXxThrxuZJg7AdsZVSKro7eFZz4N6f9i6Uzb6d5rza", sig_string)
+    /// assert_eq!("SIG_K1_KBGSFJZW39Q3Y7Gn1bW2yjDycWYKXpfFgoGEzzrT8dFuQiwuvj3jcXxThrxuZJg7AdsZVSKro7eFZz4N6f9i6Uzb6d5rza", sig)
     /// ```
     pub fn sign_message(&self, message: &str) -> String {
         let private_key = SigningKey::from_bytes(&self.key.as_slice()).unwrap();
