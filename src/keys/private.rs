@@ -16,6 +16,7 @@ pub struct PrivateKey{ key: Vec<u8> }
 impl PrivateKey {
     /// Creates a new private key instance
     pub fn new(key: Vec<u8>) -> PrivateKey {
+        assert!(key.len() == 32);
         PrivateKey{ key }
     }
 
@@ -28,10 +29,13 @@ impl PrivateKey {
     /// assert_eq!(assert_key, key)
     /// ```
     pub fn from_login(username: &str, password: &str, role: &str ) -> PrivateKey {
+        assert!(username.is_ascii());
+        assert!(password.is_ascii());
+        assert!(role.is_ascii());
+
         let seed = username.to_owned() + &role + &password;
         let hash = Sha256::digest(seed.as_bytes());
-        assert!(hash.len() == 32);
-        PrivateKey{ key: hash.to_vec() }
+        PrivateKey::new(hash.to_vec())
     }
 
     /// Converts the internally stored private key hash buffer to a string representing
@@ -80,5 +84,40 @@ impl PrivateKey {
         Signature::new(signature.as_ref().to_vec())
     }
 }
+
+
+
+#[cfg(test)]
+mod test {
+    use crate::keys::private::*;
+    use k256::sha2::Sha256;
+    use quickcheck::quickcheck;
+    use quickcheck::TestResult;
+
+    quickcheck! {
+        fn prop(key_buffer: Vec<u8>) -> TestResult {
+            if key_buffer.len() != 32 {
+                return TestResult::discard()
+            }
+            TestResult::from_bool(PrivateKey{ key: key_buffer.clone() } == PrivateKey::new(key_buffer))
+        }
+    }
+
+    quickcheck! {
+        fn prop_login_inputs(user: String, pass: String, role: String) -> TestResult {
+
+            if !user.is_ascii() || !pass.is_ascii() || !role.is_ascii() {
+                return TestResult::discard()
+            }
+
+            let hash = Sha256::digest(user.clone() + &pass + &role);
+            let priv1 = PrivateKey::new(hash.to_vec());
+            
+            TestResult::from_bool(priv1 == PrivateKey::from_login(&user, &pass, &role))
+        }
+    }
+
+}
+
 
 
