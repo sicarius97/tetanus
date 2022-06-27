@@ -16,22 +16,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: Swatinem/rust-cache@v1
+    - name: Wasm pack 
+      uses: jetli/wasm-pack-action@v0.3.0
     - name: Check
       run: cargo check --verbose
     - name: Run tests
       run: cargo test --verbose
-  
-  web-build-test:
-  
-    runs-on: ubuntu-latest
     
-    steps: 
-    - uses: actions/checkout@v3
-    - uses: Swatinem/rust-cache@v1
-    - name: Wasm pack 
-      uses: jetli/wasm-pack-action@v0.3.0
     - name: Web Build
       run: wasm-pack build
     - name: Web Test
       run: wasm-pack test --node
-    
