@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::*;
 use crate::utils::{encode_to_string, EncodeType};
+use crate::types::chain::Chain;
 
 #[wasm_bindgen]
 pub struct PublicKey { key: Vec<u8> }
@@ -12,9 +13,16 @@ impl PublicKey {
     }
 
     /// Converts a public key to a wif encoded string
-    pub fn to_string(&self) -> String {
+    pub fn to_string(&self, chain: Option<Chain>) -> String {
+        let prefix = match chain.unwrap_or(Chain::Hive) {
+            Chain::Hive => String::from("STM"),
+            Chain::Steem => String::from("STM"),
+            Chain::Eos => String::from("EOS")
+        };
+        
+        println!("{}", &self.key.len());
         assert!(&self.key.len() > &0);
 
-        "STM".to_owned() + &encode_to_string(&self.key, Some(EncodeType::PubKey))
+        prefix + &encode_to_string(self.key.clone(), Some(EncodeType::PubKey))
     }
 }

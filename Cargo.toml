@@ -15,8 +15,14 @@ crate-type = ["cdylib", "rlib"]
 bs58 = "0.4.0"
 wasm-bindgen = { version = "0.2.74" }
 ripemd = "0.1.1"
-k256 = { version = "0.11.2", default-features = false, features = ["keccak256", "ecdsa"] }
+k256 = { version = "0.10", default-features = false, features = ["ecdsa", "sha256", "keccak256", "std"] }
 getrandom = { version = "0.2", features = ["js"] }
+hex = "0.3.1"
+thiserror = { version = "1.0", default-features = false }
+primitive-types = { version = "0.6.1", features=["serde"]}
+generic-array = "0.14.5"
+sha2 = { version = "0.9.8", default-features = false }
+serde = { version = "1.0.137", features = ["derive"]}
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.17"
