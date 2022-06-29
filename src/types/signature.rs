@@ -1,6 +1,7 @@
 use primitive_types::{H256, U256};
-use crate::utils::{hash_message, encode_to_string};
+use crate::utils::{hash_message, encode_to_string, decode_from_string};
 use crate::types::keys::PublicAddress;
+use crate::signatures::SignatureWrapper;
 use k256::{
     ecdsa::{
         recoverable::{Id as RecoveryId, Signature as RecoverableSignature},
@@ -10,11 +11,10 @@ use k256::{
     PublicKey as K256PublicKey,
 };
 use generic_array::GenericArray;
-use std::{convert::TryFrom, fmt, str::FromStr};
+use std::{convert::TryFrom, fmt};
 use thiserror::Error;
-use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct Signature{ pub r: U256, pub s: U256, pub v: u64 }
 
 /// An error involving a signature.
@@ -24,8 +24,10 @@ pub enum SignatureError {
     #[error("invalid signature length, got {0}, expected 65")]
     InvalidLength(usize),
     /// When parsing a signature from string to hex
+    /* 
     #[error(transparent)]
     DecodingError(#[from] hex::FromHexError),
+    */
     /// Thrown when signature verification failed (i.e. when the address that
     /// produced the signature did not match the expected address)
     #[error("Signature verification failed. Expected {0}, got {1}")]
@@ -53,8 +55,8 @@ pub enum RecoveryMessage {
 
 impl fmt::Display for Signature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let sig = <[u8; 65]>::from(self);
-        write!(f, "{}", hex::encode(&sig[..]))
+        let sig = self.to_legacy(None);
+        write!(f, "{}", sig)
     }
 }
 
@@ -119,13 +121,25 @@ impl Signature {
         Ok(RecoveryId::new(standard_v)?)
     }
 
-    pub fn to_string(&self) -> String {
+    pub fn from_legacy(sig: &str, prefix: Option<&str>) -> Result<Signature, SignatureError> {
+        let sig_string = sig.strip_prefix(prefix.unwrap_or("SIG_K1_")).unwrap_or(sig);
+
+        let mut decoded_sig = decode_from_string(sig_string.to_string(), None);
+        decoded_sig.rotate_left(1);
+
+        Ok(Signature::try_from(decoded_sig.as_slice())?)
+    }
+
+    /// Returns a legacy base58 string compatible with eosio-ecc,
+    /// dhive, hivejs, etc
+    pub fn to_legacy(&self, prefix: Option<&str>) -> String {
+        let prefix = prefix.unwrap_or("");
         // let signature = RecoverableSignature::from_bytes(&self.sig).unwrap();
         let mut current_buff = self.to_vec();
         current_buff.rotate_right(1);
         let sig_string = encode_to_string(current_buff, None);
 
-        sig_string
+        prefix.to_owned() + &sig_string
     }
 
     /// Copies and serializes `self` into a new `Vec` with the recovery id included
@@ -164,7 +178,7 @@ impl<'a> TryFrom<&'a [u8]> for Signature {
         Ok(Signature { r, s, v: v.into() })
     }
 }
-
+/* 
 impl FromStr for Signature {
     type Err = SignatureError;
 
@@ -174,6 +188,7 @@ impl FromStr for Signature {
         Signature::try_from(&bytes[..])
     }
 }
+*/
 
 impl From<&Signature> for [u8; 65] {
     fn from(src: &Signature) -> [u8; 65] {
@@ -206,6 +221,12 @@ impl From<&Signature> for Vec<u8> {
 impl From<Signature> for Vec<u8> {
     fn from(src: Signature) -> Vec<u8> {
         <[u8; 65]>::from(&src).to_vec()
+    }
+}
+
+impl From<&SignatureWrapper> for Signature {
+    fn from(src: &SignatureWrapper) -> Signature {
+        Signature::try_from(src.sig().as_slice()).unwrap()
     }
 }
 

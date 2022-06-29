@@ -1,71 +1,72 @@
 use wasm_bindgen::prelude::*;
-use crate::{utils::{encode_to_string, decode_from_string}, keys::public::PublicKey, types::chain::Chain};
-use k256::ecdsa::recoverable::Signature as RecoverableSignature;
-use k256::ecdsa::signature::Signature as OtherSignature;
+use crate::{types::signature::{Signature as CanonicalSig}, keys::public::PublicKey, types::chain::Chain};
+
 
 #[derive(Debug, Clone, PartialEq, Default)]
 #[wasm_bindgen]
-pub struct Signature{ sig: Vec<u8> }
+pub struct SignatureWrapper{ sig: Vec<u8> }
 
 #[wasm_bindgen]
-impl Signature {
+impl SignatureWrapper {
     /// Creates a new signature instance
-    pub fn new(sig: Vec<u8>) -> Signature {
-        Signature { sig }
+    pub fn new(sig: Vec<u8>) -> SignatureWrapper {
+        SignatureWrapper { sig }
     }
 
-    /// Allows for a base58 string to be decoded into its original buffer
+    // Returns a clone of the stored inner signature buffer
+    pub fn sig(&self) -> Vec<u8> {
+        self.sig.clone()
+    }
+
+    /// Allows for a base58 string to be encoded to a legacy wif signature string
     /// ```
     /// use tetanus::keys::private::PrivateKey;
-    /// use tetanus::signatures::Signature;
     /// // Previously encoded string
-    /// let sig_string = "28Xrw5WR4Cz1by9kfvjxLCwFvGNatnx99WJmD2wi3zx8QqayWzXZYJQrW3zJzU8f1eJSzWSYDoZHh75txvSmBUQiRN8z3G5".to_string();
+    /// let sig_string = "SIG_K1_JvYLntg1nfTLFTMX9mXGJB95WnbceLKwcvWTc16tVVCX1eCvFKXAtcuRs8xtRqMhH8oHFYAoWUYg8n9iV5nuLxtHojE2eo";
     ///
     /// let message = "helloworld";
     /// let private = PrivateKey::from_login("test", "test", "owner");
     /// let sig2 = private.sign_message(message);
-    /// assert_eq!(sig_string, sig2.to_string())
+    /// assert_eq!(sig_string.to_string(), sig2.to_string())
     /// ```
     pub fn to_string(&self) -> String {
-        let signature = RecoverableSignature::from_bytes(&self.sig).unwrap();
-        let sig_string = encode_to_string(signature.as_ref().to_vec(), None);
+        let sig = CanonicalSig::from(self);
 
-        sig_string
+        sig.to_legacy(Some("SIG_K1_"))
     }
 
-    /// Allows for a base58 string to be decoded into its original buffer
+    /// Allows for a base58 string to be decoded into its original buffer from
+    /// a legacy wif signature string
     /// ```
     /// use tetanus::keys::private::PrivateKey;
-    /// use tetanus::signatures::Signature;
+    /// use tetanus::signatures::SignatureWrapper;
     /// // Previously encoded string
-    /// let sig_string = "28Xrw5WR4Cz1by9kfvjxLCwFvGNatnx99WJmD2wi3zx8QqayWzXZYJQrW3zJzU8f1eJSzWSYDoZHh75txvSmBUQiRN8z3G5".to_string();
+    /// let sig_string = "SIG_K1_JvYLntg1nfTLFTMX9mXGJB95WnbceLKwcvWTc16tVVCX1eCvFKXAtcuRs8xtRqMhH8oHFYAoWUYg8n9iV5nuLxtHojE2eo";
     ///
     /// let message = "helloworld";
-    /// let sig = Signature::from_string(sig_string);
+    /// let sig = SignatureWrapper::from_string(sig_string);
     /// let private = PrivateKey::from_login("test", "test", "owner");
     /// let sig2 = private.sign_message(message);
     /// assert_eq!(sig, sig2)
     /// ```
-    pub fn from_string(sig: String) -> Signature {
-        let signature = decode_from_string(sig, None);
+    pub fn from_string(sig: &str) -> SignatureWrapper {
+        let signature = CanonicalSig::from_legacy(&sig, Some("SIG_K1_")).unwrap();
 
-        Signature { sig: signature }
+        SignatureWrapper::new(signature.into())
     }
 
     /// Allows a public key wif to be obtained from a base58 encoded signature string and its original message
     ///```
-    /// use tetanus::signatures::Signature;
-    /// let sig_string = "28Xrw5WR4Cz1by9kfvjxLCwFvGNatnx99WJmD2wi3zx8QqayWzXZYJQrW3zJzU8f1eJSzWSYDoZHh75txvSmBUQiRN8z3G5".to_string();
+    /// use tetanus::signatures::SignatureWrapper;
+    /// let sig_string = "SIG_K1_JvYLntg1nfTLFTMX9mXGJB95WnbceLKwcvWTc16tVVCX1eCvFKXAtcuRs8xtRqMhH8oHFYAoWUYg8n9iV5nuLxtHojE2eo".to_string();
     /// let message = "helloworld";
-    /// let public_key = Signature::recover_from_string(sig_string, message.to_string(), None);
+    /// let public_key = SignatureWrapper::recover_public(sig_string, message.to_string(), None);
     /// assert_eq!("STM5jixkNBqJXNtX9vy2GjaqpX2d5jXrcjRXgh1WU5fXZhnDJrLM8", public_key)
-    pub fn recover_from_string(sig_string: String, msg: String, chain: Option<Chain>) -> String {
-        let sig = decode_from_string(sig_string, None);
+    pub fn recover_public(sig_string: String, msg: String, chain: Option<Chain>) -> String {
+        let sig = CanonicalSig::from_legacy(&sig_string, Some("SIG_K1_")).unwrap();
 
-        let signature = RecoverableSignature::from_bytes(&sig).unwrap();
+        let pub_address = sig.recover(msg).unwrap();
 
-        let public_key = signature.recover_verify_key(msg.as_bytes()).unwrap();
-
-        PublicKey::new(public_key.to_bytes().to_vec()).to_string(chain)
+        PublicKey::new(pub_address.0.to_vec()).to_string(chain)
     }
 }
