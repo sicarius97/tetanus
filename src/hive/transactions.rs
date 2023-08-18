@@ -24,8 +24,8 @@ pub struct Transaction {
 
 #[wasm_bindgen]
 impl Transaction {
-    pub fn new(val: &JsValue) -> Transaction {
-        val.into_serde().unwrap()
+    pub fn new(val: JsValue) -> Transaction {
+        serde_wasm_bindgen::from_value(val).unwrap()
     }
 
     pub fn digest_sign(&self, key: &str) -> SignatureWrapper {
